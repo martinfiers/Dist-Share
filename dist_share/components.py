@@ -393,6 +393,16 @@ class NewProject(tk.Frame):
         self.check_url = tk.Button(self.top_frame,text='Check')
         self.check_url.pack(side='left')
         self.check_url.bind('<ButtonRelease-1>',self.check_url_event)
+        self.repository_type = var = tk.StringVar()
+        self.check_svn = tk.Radiobutton(self.top_frame, variable=var, text='svn', value='svn')
+        self.check_svn.pack(side='left')
+        self.check_git = tk.Radiobutton(self.top_frame, variable=var, text='git', value='git')
+        self.check_git.pack(side='left')
+        self.check_hg = tk.Radiobutton(self.top_frame, variable=var, text='bazaar', value='bazaar')
+        self.check_hg.pack(side='left')
+        self.check_bzr = tk.Radiobutton(self.top_frame, variable=var, text='mercurial', value='mercurial')
+        self.check_bzr.pack(side='left')
+        
         self.middle_frame = tk.Frame(self)
         self.middle_frame.pack(side='top')
         self.__Label2 = tk.Label(self.middle_frame,text='Copy Location')
@@ -406,7 +416,7 @@ class NewProject(tk.Frame):
         self.buttons_frame.pack(side='top')
         self.okay = tk.Button(self.buttons_frame,text='Create Project')
         self.okay.pack(side='left')
-        self.okay.bind('<ButtonRelease-1>',self.event_okay)
+        self.okay.bind('<ButtonRelease-1>',self.event_okay_create_project)
         self.cancel = tk.Button(self.buttons_frame,text='Cancel')
         self.cancel.pack(side='left')
         self.cancel.bind('<ButtonRelease-1>',self.event_cancel)
@@ -415,6 +425,9 @@ class NewProject(tk.Frame):
         self.warning_text = tk.Text(self.warning_frame)
         self.warning_text.pack(side='top')
         self.callback_get_login = None
+        
+        AskPassword.root = self.root
+        self.callback_get_login2 = AskPassword.ask_password_window_blocking
 
     def event_cancel(self,Event=None):
         self.root.destroy()
@@ -438,13 +451,17 @@ class NewProject(tk.Frame):
 
         self.callback_get_login = f
 
-    def event_okay(self,Event=None):
+    def event_okay_create_project(self,Event=None):
+        """
+        Create a project using the 'Project' class.
+        """
         project_path = self.pth_entry.get()
         project_url = self.url_entry.get()
 
         if self._repository_url_okay(project_url) and self._project_path_okay(project_path):
             try:
-                project = Project(path=project_path,url=project_url,callback_get_login=self.callback_get_login)
+                project = Project(path=project_path,repository_type=self.repository_type.get(),
+                                  url=project_url,callback_get_login=self.callback_get_login2)
                 self.callback_get_login = None
             except NewProjectException:
                 sys.stderr.write(e)
@@ -770,6 +787,18 @@ class AskPassword(tk.Frame):
         widget.pack()
         window.transient(root)
 
+    @classmethod
+    def ask_password_window_blocking(cls):
+        def callback(new_credentials):
+            cls.credentials = new_credentials
+            #cls.window.destroy()
+        cls.window = window = tk.Toplevel(cls.root)
+        widget = cls(window,callback)
+        widget.pack()
+        #window.transient(cls.root)
+        window.mainloop()
+        
+        return cls.credentials
 
 class CopiesConfig(tk.Frame):
 
@@ -937,4 +966,10 @@ def ex_copies_config():
 
 
 if __name__ == '__main__':
-    ex_copies_config()
+    r = tk.Tk()
+    print 'Im going to ask'
+    ask = AskPassword.ask_password_window_blocking(root=r)
+    print 'I asked'
+    print ask
+    r.mainloop()
+    

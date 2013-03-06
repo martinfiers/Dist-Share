@@ -27,6 +27,10 @@ class NewProjectException(BaseException):
     For some reason it would not possible to create a new project
     """
 
+class RepositoryNotSupported(BaseException):
+    """
+    The repository type is not yet supported.
+    """
 
 class FutureVersionError(BaseException):
     """
@@ -441,8 +445,40 @@ class CopiesManager(object):
             for item in items:
                 copy.remove_file(item,remove_from_avoided_files=True)
 
+def checkout_repository(url=None, path=None, repository_type=None, callback_get_login=None):
+    """
+    
+    On svn, callback_get_login can be used to ask credentials. This is supported in pysvn.Client().callback_get_login
+    """
+    
+    if url and repository_type:
+        if(repository_type=='svn'):
+            self.client = pysvn.Client()
+            if callback_get_login:
+                self.client.callback_get_login = callback_get_login
+            self.client.checkout(url=url,path=path)
+                
+        elif(repository_type=='mercurial'):
+            credentials = callback_get_login()
+            
+            print credentials
+
+            import pyhg
+            repo = pyhg.Repo(url)
+            repo.hg_clone(url, path, username=credentials[0], password=credentials[1])
+            
+            # Import hgpy, run hg clone.
+        else:
+            raise RepositoryNotSupported("The checkout for %s is not yet supported."%(repository_type))
 
 def update_local_copy(path):
+    """
+    Currently supported:
+    - svn : svn update
+    
+    To add:
+    - hg  : hg pull / hg update
+    """
     process = subprocess.Popen(['svn','update',path],stdout=subprocess.PIPE,stdin=subprocess.PIPE)
     output,errors = process.communicate()
     updated_files = []
@@ -469,10 +505,11 @@ def update_local_copy(path):
 
 class Project(object):
 
-    def __init__(self,url=None,path=None,dumped_project=None,callback_get_login=None):
+    def __init__(self,url=None,repository_type=None,path=None,dumped_project=None,callback_get_login=None):
 
         self.path = path
         self.url = url
+        self.repository_type = repository_type
 
         if  path and url:
             self.init_new_copy(url,path,callback_get_login)
@@ -499,8 +536,7 @@ class Project(object):
             #     self._version = DIST_FILE_VERSION
             # elif versions_diff == 1:
             #     raise FutureVersionError()
-
-            self.client = pysvn.Client()
+            
             self.copies_manager = project.copies_manager
             self.copies_manager.remember_repo()
             self.updated_files = project.updated_files
@@ -514,18 +550,16 @@ class Project(object):
     def init_new_copy(self,url,path,callback_get_login=None):
         if os.path.exists(path):
             if not os.path.isdir(path):
-                 raise Exception("It wasn not possible to create local repository at %" % path)
+                raise Exception("It wasn not possible to create local repository at %" % path)
         else:
             try:
                 os.makedirs(path)
             except OSError:
                 raise Exception("It wasn not possible to create local repository at %" % path)
 
-        # At this point, local_copy folder were created and is ready to checkout
-        self.client = pysvn.Client()
-        if callback_get_login:
-            self.client.callback_get_login = callback_get_login
-        self.client.checkout(url=url,path=path)
+        # At this point, the local_copy folder is created and is ready to checkout
+        checkout_repository(url=url, path=path, repository_type=self.repository_type,
+                            callback_get_login=callback_get_login)
 
     def add_new_copy(self,path,name=''):
         for copy in self.copies_manager.copies:

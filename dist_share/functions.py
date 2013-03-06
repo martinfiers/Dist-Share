@@ -31,7 +31,8 @@ class CreateCopyError(BaseException):
     """Something wrong when copying"""
     message="Something wrong when copying"
 
-
+    
+    
 def get_files(root,files=None):
     if files is None:
         files = []
