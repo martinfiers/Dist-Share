@@ -4,7 +4,7 @@
     
     Dependencies
     ------------
-    - gitpython and mercurial: To create new repositories
+    - gitpython and mercurial, pysvn: To create new repositories
     
     - TIX: Tk Interface eXtension (http://tix.sourceforge.net/). On debian, use apt-get install tix
     
