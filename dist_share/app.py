@@ -17,6 +17,8 @@ from components import *
 from project import Project, DupllicatedCopyNameException
 from functions import format_log_message
 
+WINDOW_TITLE = 'Dist Share'
+
 
 class App(object):
     
@@ -200,6 +202,8 @@ class App(object):
             for copy in self.app_project.project.copies_manager.copies:
                 self.copy_manager_menu.insert_option(0,copy.copy_name)
             self.license_board.app_project = self.app_project
+            readable_filename = filename.name.split('/')[-1]
+            self.root.wm_title("%s - %s"%(readable_filename, WINDOW_TITLE))
     
     def save_project(self, event=None):
 
@@ -420,7 +424,7 @@ Diff:
 
     def force_create_copy(self):
         if self.app_project.locked_copy:
-            if tkMessageBox.askyesno('Create current copy','This action will fisically creates the current copy. Do you want to proceed anyway?'):
+            if tkMessageBox.askyesno('Create current copy','This action will physically create a new copy. Is it OK to proceed?'):
                 self.app_project.project.create_current_copy()
                 self.app_project.locked_copy = False
                 return True
@@ -481,7 +485,7 @@ class AppProject(object):
             self.saved = False
             self.path = ''
             self.name = '-'
-            self.locked_copy = False    # A locked copy is a copy that have not been fisically copied yet
+            self.locked_copy = False    # A locked copy is a copy that have not been physically copied yet
         elif dumped_app_project:
             obj = pickle.loads(dumped_app_project)
             self.path = obj['path']
@@ -510,7 +514,6 @@ class AppProject(object):
 
 
 def main(project=None):
-    WINDOW_TITLE = 'Dist Share'
     root = Tix.Tk()
     root.wm_title('Untitled Project - '+WINDOW_TITLE)
     app = App(root)
