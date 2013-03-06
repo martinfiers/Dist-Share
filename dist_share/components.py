@@ -435,9 +435,9 @@ class NewProject(tk.Frame):
     def check_url_event(self,Event=None):
         url = self.url_entry.get()
         if self._repository_url_okay(url):
-            tkMessageBox.showinfo('','This is a valid svn repository')
+            tkMessageBox.showinfo('','This is a valid repository')
         else:
-            tkMessageBox.showwarning('Warn','This is not a valid SVN repository, or you dont have permission to check it out.')
+            tkMessageBox.showwarning('Warn','This is not a valid repository, or you dont have permission to check it out.')
 
     def load_path_event(self,Event=None):
         repository_path = tkFileDialog.askdirectory()
@@ -787,17 +787,25 @@ class AskPassword(tk.Frame):
         widget.pack()
         window.transient(root)
 
+    #@classmethod
+    #def ask_password_window_noroot(cls, callback):
+        #"""The root has to be specified to this class explicitly so that cls.root can access it."""
+        #window = tk.Toplevel(cls.root)
+        #widget = cls(window,callback)
+        #widget.pack()
+        #window.transient(cls.root)
+        
     @classmethod
     def ask_password_window_blocking(cls):
+        cls.credentials = None
         def callback(new_credentials):
             cls.credentials = new_credentials
-            #cls.window.destroy()
         cls.window = window = tk.Toplevel(cls.root)
         widget = cls(window,callback)
         widget.pack()
-        #window.transient(cls.root)
-        window.mainloop()
         
+        # This causes it to enter a local event loop until the window is closed.
+        window.wait_window()
         return cls.credentials
 
 class CopiesConfig(tk.Frame):
@@ -825,7 +833,7 @@ class CopiesConfig(tk.Frame):
         self.okay_button.pack(side='right')
         self.__Frame4 = tk.Frame(self.__Frame1)
         self.__Frame4.pack(side='left')
-        self.__Label5 = tk.Label(self.__Frame4,text='SVN repository:')
+        self.__Label5 = tk.Label(self.__Frame4,text='repository:')
         self.__Label5.pack(side='top')
         self.__Label1 = tk.Label(self.__Frame4,text='Copy path:')
         self.__Label1.pack(side='bottom')
@@ -966,10 +974,4 @@ def ex_copies_config():
 
 
 if __name__ == '__main__':
-    r = tk.Tk()
-    print 'Im going to ask'
-    ask = AskPassword.ask_password_window_blocking(root=r)
-    print 'I asked'
-    print ask
-    r.mainloop()
-    
+    pass

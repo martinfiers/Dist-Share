@@ -18,7 +18,8 @@ setup(name='Dist Share',
       author='Intec Photonics',
       author_email='intec@ugent.be',
       url='',
-	    install_requires=['gitpython', 'mercurial'],
+	    install_requires=['gitpython', 
+                          'mercurial'],
       packages=['dist_share'],
       entry_points = {
         'console_scripts': [

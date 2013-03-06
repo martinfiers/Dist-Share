@@ -9,11 +9,91 @@ import pysvn
 import subprocess
 import pickle
 import StringIO
-
+import urllib
+import urlparse
 
 FOLDER_SEPARATOR = os.sep
 SVN_MARKER = os.path.join(FOLDER_SEPARATOR,'.svn')
 DIST_FILE_VERSION = 'v0.3.2'
+
+def netlocsplit(netloc):
+    '''split [user[:passwd]@]host[:port] into 4-tuple.'''
+
+    a = netloc.find('@')
+    if a == -1:
+        user, passwd = None, None
+    else:
+        userpass, netloc = netloc[:a], netloc[a + 1:]
+        c = userpass.find(':')
+        if c == -1:
+            user, passwd = urllib.unquote(userpass), None
+        else:
+            user = urllib.unquote(userpass[:c])
+            passwd = urllib.unquote(userpass[c + 1:])
+    c = netloc.find(':')
+    if c == -1:
+        host, port = netloc, None
+    else:
+        host, port = netloc[:c], netloc[c + 1:]
+    return host, port, user, passwd
+
+
+def parseurl(path):
+    """
+    See https://bitbucket.org/tortoisehg/thg/src/default/tortoisehg/hgqt/sync.py for 
+    parsing URL's. I don't know if we can re-use it because it is GPL based.
+    """
+    if path.startswith('ssh://'):
+        scheme = 'ssh'
+        p = path[len('ssh://'):]
+        user, passwd = None, None
+        if p.find('@') != -1:
+            user, p = tuple(p.rsplit('@', 1))
+            if user.find(':') != -1:
+                user, passwd = tuple(user.rsplit(':', 1))
+        m = re.match(r'([^:/]+)(:(\d+))?(/(.*))?$', p)
+        if m:
+            host = m.group(1)
+            port = m.group(3)
+            folder = m.group(5) or '.'
+        else:
+            print('Malformed ssh URL', path)
+            host, port, folder = '', '', ''
+    elif path.startswith(('http://', 'https://', 'svn+https://', 'git://')):
+        # work around http://bugs.python.org/issue7904
+        if 'svn+https' not in urlparse.uses_netloc:
+            urlparse.uses_netloc.append('svn+https')
+        if 'git' not in urlparse.uses_netloc:
+            urlparse.uses_netloc.append('git')
+        snpaqf = urlparse.urlparse(path)
+        scheme, netloc, folder, params, query, fragment = snpaqf
+        host, port, user, passwd = netlocsplit(netloc)
+        if folder.startswith('/'):
+            folder = folder[1:]
+    else:
+        user, host, port, passwd = [''] * 4
+        folder = path
+        scheme = 'local'
+    return user, host, port, folder, passwd, scheme
+
+
+def reconstruct_url(user, host, port, folder, passwd, scheme):
+    parts = [scheme, '://']
+    if scheme == 'local':
+        return folder
+    if scheme == 'ssh' and '@' in host:
+        user, host = host.split('@', 1)
+    if user:
+        parts.append(user)
+        if passwd:
+            parts.append(':%s'%passwd)
+        parts.append('@')
+    parts.append(host)
+    if port:
+        parts.extend([':', port])
+    parts.extend(['/', folder])
+    return ''.join(parts)
+    
 
 
 class DupllicatedCopyNameException(BaseException):
@@ -34,7 +114,8 @@ class RepositoryNotSupported(BaseException):
 
 class FutureVersionError(BaseException):
     """
-    The file that you are loading has a version that is not suported by ypur Dist Share version. Please update Dist Share
+    The file that you are loading has a version that is not suported 
+    by your Dist Share version. Please update Dist Share
     """
 
 
@@ -459,15 +540,20 @@ def checkout_repository(url=None, path=None, repository_type=None, callback_get_
             self.client.checkout(url=url,path=path)
                 
         elif(repository_type=='mercurial'):
+            
             credentials = callback_get_login()
             
-            print credentials
+            print 'mercurial, with credentials: %s:%s'%(credentials[0], '*****')
 
             import pyhg
-            repo = pyhg.Repo(url)
-            repo.hg_clone(url, path, username=credentials[0], password=credentials[1])
+            repo = pyhg.Repo(path)
+            user, host, port, folder, passwd, scheme = parseurl(url)
             
-            # Import hgpy, run hg clone.
+            url2 = reconstruct_url(user, host, port, folder, credentials[1], scheme)
+            
+            repo.hg_clone(url2, path, username=credentials[0], password=credentials[1])
+            
+            
         else:
             raise RepositoryNotSupported("The checkout for %s is not yet supported."%(repository_type))
 
