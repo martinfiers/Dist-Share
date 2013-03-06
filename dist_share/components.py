@@ -421,7 +421,7 @@ class NewProject(tk.Frame):
 
     def check_url_event(self,Event=None):
         url = self.url_entry.get()
-        if self._svn_url_okay(url):
+        if self._repository_url_okay(url):
             tkMessageBox.showinfo('','This is a valid svn repository')
         else:
             tkMessageBox.showwarning('Warn','This is not a valid SVN repository, or you dont have permission to check it out.')
@@ -442,7 +442,7 @@ class NewProject(tk.Frame):
         project_path = self.pth_entry.get()
         project_url = self.url_entry.get()
 
-        if self._svn_url_okay(project_url) and self._project_path_okay(project_path):
+        if self._repository_url_okay(project_url) and self._project_path_okay(project_path):
             try:
                 project = Project(path=project_path,url=project_url,callback_get_login=self.callback_get_login)
                 self.callback_get_login = None
@@ -457,9 +457,9 @@ class NewProject(tk.Frame):
         else:
             tkMessageBox.showerror('Error','It was not possible to create a new project. \nPlease check svn URL and folder path.')
 
-    def _svn_url_okay(self,url):
-        #TODO: check if url is valid and if url is a valid svn.
-        #      also check for permissions to checkout this svn rrepository
+    def _repository_url_okay(self,url):
+        #TODO: check if url is valid and if url is a valid repository file (svn, hg, git, bzr).
+        #      also check for permissions to checkout this repository
         if url:
             return True
 
